@@ -11,7 +11,7 @@ const {
   COLOR_EVT
 } = require("./src/constants")
 const Semaphore = require('./src/Semaphore')
-const io = require("socket.io")(3000, {
+const io = require("socket.io")(3001, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
@@ -29,8 +29,8 @@ io.on(CONNECTION_EVT, (socket) => {
   console.log("a user connected");
   let semTimer = intervalFactory(socket)
 
-  socket.on(POWER_STATE_EVT, (powerOn) => {
-    if (powerOn) {
+  socket.on(POWER_STATE_EVT, ({state}) => {
+    if (state) {
       semTimer = intervalFactory(socket)
       sem.active = false;
       socket.emit(TURN_ON_EVT)
@@ -41,13 +41,19 @@ io.on(CONNECTION_EVT, (socket) => {
     }
   })
 
-  socket.on(MALFUNCTION_EVT, () => {
-    clearInterval(semTimer);
-    sem.active = false;
-    socket.emit(TURN_OFF_EVT)
+  socket.on(MALFUNCTION_EVT, ({state}) => {
+    if (state) {
+      semTimer = intervalFactory(socket)
+      sem.active = false;
+      socket.emit(TURN_ON_EVT)
+    } else {
+      clearInterval(semTimer);
+      sem.active = false;
+      socket.emit(TURN_OFF_EVT)
+    }
   })
 
-  socket.on(SET_TIME_EVT, (time) => {
+  socket.on(SET_TIME_EVT, ({time}) => {
     time = Number(time)
     currentTime = time;
 
@@ -61,7 +67,7 @@ io.on(CONNECTION_EVT, (socket) => {
     socket.emit(MODE_EVT, mode)
   })
 
-  socket.on("on-demand", (demandMode) => {
+  socket.on("on-demand", () => {
     socket.emit(MODE_EVT, MODE_ACTIVE)
     socket.emit(COLOR_EVT, 2)
     setInterval(() => {
