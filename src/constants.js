@@ -7,7 +7,7 @@ const MODE_WAIT = "wait";
 const MODE_ACTIVE = "active";
 const TURN_ON_EVT = "turn-on";
 const TURN_OFF_EVT = "turn-off";
-const COLOR_EVT = "turn-off";
+const COLOR_EVT = "color";
 const DEMAND_EVT = "on-demand";
 
 module.exports = {
