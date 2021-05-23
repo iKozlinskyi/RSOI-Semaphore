@@ -11,7 +11,8 @@ const {
   COLOR_EVT
 } = require("./src/constants")
 const Semaphore = require('./src/Semaphore')
-const io = require("socket.io")(3001, {
+const PORT = process.env.PORT || 3001
+const io = require("socket.io")(PORT, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
