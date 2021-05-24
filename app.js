@@ -33,7 +33,6 @@ io.on(CONNECTION_EVT, (socket) => {
   }
 
   socket.on(POWER_STATE_EVT, ({state: power}) => {
-    console.log(sem, power)
     if (power) {
       sem.start();
       io.sockets.emit(TURN_ON_EVT, {id, timestamp: new Date()})
