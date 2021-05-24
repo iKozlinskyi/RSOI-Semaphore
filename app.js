@@ -21,38 +21,35 @@ const io = require("socket.io")(PORT, {
 });
 
 let id = 0;
-const sem = new Semaphore();
+const sem = new Semaphore(2000);
+sem.onNext((color) => io.sockets.emit(COLOR_EVT, {id: id++, color, timestamp: new Date()}))
 
-const intervalFactory = () => setInterval(() => {
-  io.sockets.emit(COLOR_EVT, { id: id++, color: sem.nextColor() });
-}, sem.interval);
 let currentTime = 0;
 
-let semTimer = intervalFactory()
 io.on(CONNECTION_EVT, (socket) => {
   console.log("a user connected");
+  if (!sem.active) {
+    sem.start();
+  }
 
-  socket.on(POWER_STATE_EVT, ({state}) => {
-    if (state) {
-      semTimer = intervalFactory(socket)
-      sem.active = false;
-      io.sockets.emit(TURN_ON_EVT)
+  socket.on(POWER_STATE_EVT, ({state: power}) => {
+    console.log(sem, power)
+    if (power) {
+      sem.start();
+      io.sockets.emit(TURN_ON_EVT, {id, timestamp: new Date()})
     } else {
-      clearInterval(semTimer);
-      sem.active = false;
-      io.sockets.emit(TURN_OFF_EVT)
+      sem.stop();
+      io.sockets.emit(TURN_OFF_EVT, {id, timestamp: new Date()})
     }
   })
 
-  socket.on(MALFUNCTION_EVT, ({state}) => {
-    if (state) {
-      semTimer = intervalFactory(socket)
-      sem.active = false;
-      io.sockets.emit(TURN_ON_EVT)
+  socket.on(MALFUNCTION_EVT, ({state: malfunction}) => {
+    if (!malfunction) {
+      sem.start();
+      io.sockets.emit(TURN_ON_EVT, {id, timestamp: new Date()})
     } else {
-      clearInterval(semTimer);
-      sem.active = false;
-      io.sockets.emit(TURN_OFF_EVT)
+      sem.stop();
+      io.sockets.emit(TURN_OFF_EVT, {id, timestamp: new Date()})
     }
   })
 
@@ -67,14 +64,14 @@ io.on(CONNECTION_EVT, (socket) => {
       mode = MODE_ACTIVE
     }
 
-    io.sockets.emit(MODE_EVT, mode)
+    io.sockets.emit(MODE_EVT, {MODE_EVT: mode, id, timestamp: new Date()})
   })
 
   socket.on(DEMAND_EVT, () => {
-    io.sockets.emit(MODE_EVT, MODE_ACTIVE)
+    io.sockets.emit(MODE_EVT, {MODE_EVT: MODE_ACTIVE, id, timestamp: new Date()})
     io.sockets.emit(COLOR_EVT, 2)
-    setInterval(() => {
-      io.sockets.emit(MODE_EVT, MODE_WAIT)
+    setTimeout(() => {
+      io.sockets.emit(MODE_EVT, {MODE_EVT: MODE_WAIT, id, timestamp: new Date()})
     }, sem.interval)
   })
 });
