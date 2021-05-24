@@ -7,6 +7,7 @@ class Semaphore {
     this.active = false;
     this._listener = () => {};
     this.timer = new Timer(() => this._listener(this._nextColor()), this.interval)
+    this.colorChangeStep = 1;
   }
   
   start() {
@@ -20,11 +21,12 @@ class Semaphore {
   }
 
   _nextColor() {
-    // TODO: yellow in the middle
-    this.colorIdx += 1;
-    if (this.colorIdx === 3) {
-      this.colorIdx = 0;
+    if (this.colorIdx === 2) {
+      this.colorChangeStep = -1
+    } else if (this.colorIdx === 0) {
+      this.colorChangeStep = 1;
     }
+    this.colorIdx += this.colorChangeStep;
     
     return this.colorIdx;
   }
