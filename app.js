@@ -8,7 +8,8 @@ const {
   MODE_ACTIVE,
   TURN_ON_EVT,
   TURN_OFF_EVT,
-  COLOR_EVT
+  COLOR_EVT,
+  DEMAND_EVT
 } = require("./src/constants")
 const Semaphore = require('./src/Semaphore')
 const PORT = process.env.PORT || 3001
@@ -22,23 +23,24 @@ const io = require("socket.io")(PORT, {
 let id = 0;
 const sem = new Semaphore();
 
-const intervalFactory = (socket) => setInterval(() => {
-  socket.emit(COLOR_EVT, { id: id++, color: sem.nextColor() });
+const intervalFactory = () => setInterval(() => {
+  io.sockets.emit(COLOR_EVT, { id: id++, color: sem.nextColor() });
 }, sem.interval);
 let currentTime = 0;
+
+let semTimer = intervalFactory()
 io.on(CONNECTION_EVT, (socket) => {
   console.log("a user connected");
-  let semTimer = intervalFactory(socket)
 
   socket.on(POWER_STATE_EVT, ({state}) => {
     if (state) {
       semTimer = intervalFactory(socket)
       sem.active = false;
-      socket.emit(TURN_ON_EVT)
+      io.sockets.emit(TURN_ON_EVT)
     } else {
       clearInterval(semTimer);
       sem.active = false;
-      socket.emit(TURN_OFF_EVT)
+      io.sockets.emit(TURN_OFF_EVT)
     }
   })
 
@@ -46,11 +48,11 @@ io.on(CONNECTION_EVT, (socket) => {
     if (state) {
       semTimer = intervalFactory(socket)
       sem.active = false;
-      socket.emit(TURN_ON_EVT)
+      io.sockets.emit(TURN_ON_EVT)
     } else {
       clearInterval(semTimer);
       sem.active = false;
-      socket.emit(TURN_OFF_EVT)
+      io.sockets.emit(TURN_OFF_EVT)
     }
   })
 
@@ -65,14 +67,14 @@ io.on(CONNECTION_EVT, (socket) => {
       mode = MODE_ACTIVE
     }
 
-    socket.emit(MODE_EVT, mode)
+    io.sockets.emit(MODE_EVT, mode)
   })
 
-  socket.on("on-demand", () => {
-    socket.emit(MODE_EVT, MODE_ACTIVE)
-    socket.emit(COLOR_EVT, 2)
+  socket.on(DEMAND_EVT, () => {
+    io.sockets.emit(MODE_EVT, MODE_ACTIVE)
+    io.sockets.emit(COLOR_EVT, 2)
     setInterval(() => {
-      socket.emit(MODE_EVT, MODE_WAIT)
+      io.sockets.emit(MODE_EVT, MODE_WAIT)
     }, sem.interval)
   })
 });
