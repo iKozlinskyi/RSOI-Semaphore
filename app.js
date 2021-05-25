@@ -22,7 +22,10 @@ const io = require("socket.io")(PORT, {
 
 let id = 0;
 const sem = new Semaphore(2000);
-sem.onNext((color) => io.sockets.emit(COLOR_EVT, {id: id++, color, timestamp: new Date()}))
+sem.onNext((color) => {
+  io.sockets.emit(COLOR_EVT, {id, color, timestamp: new Date()})
+  id++;
+})
 
 let currentTime = 0;
 
@@ -40,6 +43,7 @@ io.on(CONNECTION_EVT, (socket) => {
       sem.stop();
       io.sockets.emit(TURN_OFF_EVT, {id, timestamp: new Date()})
     }
+    id++;
   })
 
   socket.on(MALFUNCTION_EVT, ({state: malfunction}) => {
@@ -50,27 +54,38 @@ io.on(CONNECTION_EVT, (socket) => {
       sem.stop();
       io.sockets.emit(TURN_OFF_EVT, {id, timestamp: new Date()})
     }
+    id++;
   })
 
   socket.on(SET_TIME_EVT, ({time}) => {
-    time = Number(time)
-    currentTime = time;
-
-    let mode;
-    if (currentTime < 6) {
-      mode = MODE_WAIT
-    } else {
-      mode = MODE_ACTIVE
+    if (time === null) {
+      return;
     }
-
-    io.sockets.emit(MODE_EVT, {MODE_EVT: mode, id, timestamp: new Date()})
+    currentTime = Number(time.substring(0, time.indexOf(":")))
+    console.log(currentTime)
+    let mode;
+    if (currentTime < 6 && sem.active) {
+      mode = MODE_WAIT
+      sem.stop();
+    } else if(currentTime > 6 && !sem.active) {
+      mode = MODE_ACTIVE
+      sem.start();
+    }
+    
+    if (!!mode) {
+      io.sockets.emit(MODE_EVT, {mode: mode, id, timestamp: new Date()})
+      id++;
+    }
   })
 
   socket.on(DEMAND_EVT, () => {
-    io.sockets.emit(MODE_EVT, {MODE_EVT: MODE_ACTIVE, id, timestamp: new Date()})
-    io.sockets.emit(COLOR_EVT, 2)
+    io.sockets.emit(MODE_EVT, {mode: MODE_ACTIVE, id, timestamp: new Date()})
+    id++;
+    io.sockets.emit(COLOR_EVT, {id, color: 2, timestamp: new Date()})
+    id++;
     setTimeout(() => {
-      io.sockets.emit(MODE_EVT, {MODE_EVT: MODE_WAIT, id, timestamp: new Date()})
+      io.sockets.emit(MODE_EVT, {mode: MODE_WAIT, id, timestamp: new Date()})
+      id++;
     }, sem.interval)
   })
 });
