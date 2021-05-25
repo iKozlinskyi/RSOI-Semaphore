@@ -62,7 +62,6 @@ io.on(CONNECTION_EVT, (socket) => {
       return;
     }
     currentTime = Number(time.substring(0, time.indexOf(":")))
-    console.log(currentTime)
     let mode;
     if (currentTime < 6 && sem.active) {
       mode = MODE_WAIT
@@ -79,6 +78,9 @@ io.on(CONNECTION_EVT, (socket) => {
   })
 
   socket.on(DEMAND_EVT, () => {
+    if (currentTime > 6) {
+      return
+    }
     io.sockets.emit(MODE_EVT, {mode: MODE_ACTIVE, id, timestamp: new Date()})
     id++;
     io.sockets.emit(COLOR_EVT, {id, color: 2, timestamp: new Date()})
