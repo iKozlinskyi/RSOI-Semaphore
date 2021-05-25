@@ -63,7 +63,7 @@ io.on(CONNECTION_EVT, (socket) => {
     }
     currentTime = Number(time.substring(0, time.indexOf(":")))
     let mode;
-    if (currentTime < 6 && sem.active) {
+    if (currentTime <= 6 && sem.active) {
       mode = MODE_WAIT
       sem.stop();
     } else if(currentTime > 6 && !sem.active) {
